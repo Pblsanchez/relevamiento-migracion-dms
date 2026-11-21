@@ -1,4 +1,4 @@
-/* Relevamiento migración Integra → DMS · v0.1 (T-024). Prototipo: cartera de ejemplo, borrador en el navegador, envío por Teams (D-124). */
+/* Relevamiento migración Integra → DMS · v0.2 (T-024). Cartera elegida en seleccion.js (D-126); borrador en el navegador; envío por Teams (D-124). */
 (function (g) {
   "use strict";
   var CAT = g.REL_CAT;
@@ -28,7 +28,7 @@
     return { tot: tot, hechas: tot - pen, pen: pen };
   }
   function payload(r, cart) {
-    return { v: 1, id: cart.id, t: new Date().toISOString().slice(0, 16),
+    return { v: 1, id: cart.id, n: cart.ejecutivo, s: cart.estructura || [], t: new Date().toISOString().slice(0, 16),
       c: contratos(cart).map(function (c) { var x = r.c[c.nro] || {}; return [c.nro, x.m || "", x.mot || "", x.ciclo || "", x.cond || "", x.integ || ""]; }),
       e: cart.clientes.map(function (k) { return [k.id, r.e[k.id] || ""]; }) };
   }
@@ -43,8 +43,8 @@
   if (typeof document === "undefined") return;
 
   /* ---------- estado ---------- */
-  var cart = g.REL_DEMO, CLAVE = "rel-dms." + cart.id, paso = 0, aviso = "";
-  var r = (function () { try { return JSON.parse(localStorage.getItem(CLAVE)) || null; } catch (e) { return null; } })() || { c: {}, e: {}, enviado: "" };
+  var cart = null, CLAVE = "", paso = 0, aviso = "", r = { c: {}, e: {}, enviado: "" };
+  function cargarBorrador() { try { return JSON.parse(localStorage.getItem(CLAVE)) || null; } catch (e) { return null; } }
   function guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(r)); } catch (e) { /* sin almacenamiento: sigue en memoria */ } }
   var PASOS = [
     { t: "Contratos a migrar", d: "Marcá contrato por contrato si se migra a DMS. No hay «seleccionar todo»: queremos que revises cada servicio." },
@@ -71,7 +71,7 @@
   function porCliente(lista, fila) {
     var h = "", ult = null;
     lista.forEach(function (c) {
-      if (c.cli !== ult) { if (ult) h += "</div></section>"; ult = c.cli; h += '<section class="cli"><h3 class="cli-t">' + esc(c.cli.razon) + ' <span class="cli-sap">SAP ' + esc(c.cli.sap) + '</span></h3><div class="cli-l">'; }
+      if (c.cli !== ult) { if (ult) h += "</div></section>"; ult = c.cli; h += '<section class="cli"><h3 class="cli-t">' + esc(c.cli.razon) + (c.cli.sap ? ' <span class="cli-sap">SAP ' + esc(c.cli.sap) + "</span>" : "") + '</h3><div class="cli-l">'; }
       h += fila(c);
     });
     return h + (ult ? "</div></section>" : "");
@@ -115,7 +115,7 @@
     var ks = clientesMig(r, cart); if (!ks.length) return sinMigrar();
     return ks.map(function (k) {
       var n = k.contratos.filter(function (c) { return (r.c[c.nro] || {}).m === "si"; }).length;
-      return '<section class="cli"><h3 class="cli-t">' + esc(k.razon) + ' <span class="cli-sap">SAP ' + esc(k.sap) + " · " + n + " contrato" + (n === 1 ? "" : "s") + " a migrar</span>" + (r.e[k.id] ? '<span class="ok-tag" aria-label="Respondido">✓</span>' : "") + "</h3>" +
+      return '<section class="cli"><h3 class="cli-t">' + esc(k.razon) + ' <span class="cli-sap">' + (k.sap ? "SAP " + esc(k.sap) + " · " : "") + n + " contrato" + (n === 1 ? "" : "s") + " a migrar</span>" + (r.e[k.id] ? '<span class="ok-tag" aria-label="Respondido">✓</span>' : "") + "</h3>" +
         '<div class="cto">' + radios("et-" + k.id, "etiq", CAT.etiquetas, r.e[k.id], { ref: k.id, label: "Tipo de etiqueta de " + k.razon }) + "</div></section>";
     }).join("");
   }
@@ -218,7 +218,7 @@
 
   /* ---------- eventos ---------- */
   document.addEventListener("change", function (e) {
-    var t = e.target, k = t.getAttribute && t.getAttribute("data-k"); if (!k) return;
+    var t = e.target, k = cart && t.getAttribute && t.getAttribute("data-k"); if (!k) return;
     var ref = t.getAttribute("data-ref");
     if (k === "etiq") r.e[ref] = t.value;
     else { var x = rc(r, ref); x[k] = t.value; if (k === "m" && t.value !== "no") delete x.mot; }
@@ -235,6 +235,10 @@
     else if (t.id === "btnEnviar") enviar();
     else if (t.id === "btnCopiarCod") copiarCodigo();
   });
-  document.getElementById("quien").textContent = cart.ejecutivo;
-  render();
+  g.REL_APP = { iniciar: function (c) {
+    cart = c; CLAVE = "rel-dms." + c.id; paso = 0; aviso = "";
+    r = cargarBorrador() || { c: {}, e: {}, enviado: "" };
+    document.getElementById("quien").textContent = c.ejecutivo;
+    render();
+  } };
 })(typeof window !== "undefined" ? window : globalThis);
