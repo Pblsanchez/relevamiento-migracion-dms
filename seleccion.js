@@ -75,9 +75,9 @@
     g.REL_APP.iniciar(c);
     var t = $("pasoT"); if (t) t.focus();
   }
-  function mostrarSel() {
+  function mostrarSel(sinFoco) {
     $("vistaRel").hidden = true; $("quienBox").hidden = true; $("vistaSel").hidden = false;
-    vistaSel("selT");
+    vistaSel(sinFoco === true ? null : "selT");
   }
   function recordada() {
     var s = null; try { s = JSON.parse(localStorage.getItem(LS)); } catch (x) { s = null; }
@@ -94,7 +94,7 @@
     pq.cli.forEach(function (c) { if (c[2] < 0) sinN++; else cnt[c[2]]++; });
     $("banner").innerHTML = txtBanner;
     var e = recordada();
-    if (e !== null) abrir(e); else mostrarSel();
+    if (e !== null) abrir(e); else mostrarSel(true);
   }
   function arrancar() {
     var demo = /[?&]demo(?:=|&|$)/.test(location.search), clave = D.claveDelLink(location.hash);

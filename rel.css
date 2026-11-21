@@ -23,6 +23,7 @@ h1 { font-size: 24px; line-height: 28px; font-weight: 500; }
 h2 { font-size: 20px; line-height: 24px; font-weight: 500; }
 h3 { font-size: 16px; line-height: 22px; font-weight: 500; }
 :focus-visible { outline: 2px solid transparent; box-shadow: var(--shadow-focus-regular); border-radius: var(--c-border-radius-xsmall); }
+[hidden] { display: none !important; }
 .sr-only, .sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .small { font-size: 14px; line-height: 20px; color: var(--c-color-text-subtle); }
 .saltar { position: absolute; left: -999px; top: 0; background: var(--c-gray-000); padding: var(--c-spacing-2) var(--c-spacing-4); z-index: 10; }
@@ -161,6 +162,5 @@ dialog::backdrop { background: #1d2023b2; }
 /* publicar.html */
 .pub-pasos { margin: var(--c-spacing-4) 0; padding-left: var(--c-spacing-5); display: grid; gap: var(--c-spacing-2); }
 .pub-link { width: 100%; font: 400 14px/20px ui-monospace, monospace; }
-.pub-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--c-spacing-3); margin: var(--c-spacing-4) 0; }
-.pub-stat { border: 1px solid var(--c-color-border-subtle); border-radius: var(--c-border-radius-small); padding: var(--c-spacing-3); }
+input.pub-link { color: var(--c-color-text-strong); border: 1px solid var(--c-color-border-strong); border-radius: var(--c-border-radius-small); padding: var(--c-spacing-2) var(--c-spacing-3); max-width: 640px; }
 .pub-stat b { display: block; font: 500 24px/28px var(--c-font-family-headline); color: var(--c-color-text-strong); }
