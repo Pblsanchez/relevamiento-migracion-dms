@@ -1,26 +1,20 @@
-/* Cartera de EJEMPLO: ningún cliente ni contrato es real (D-003, D-014). En E3 se reemplaza por la cartera cifrada del link personal. */
+/* Ejemplo (?demo): estructura, clientes y contratos INVENTADOS (D-003, D-014). Mismo formato que el archivo cifrado real.
+   est = [Dirección, Gerente comercial, Gerente de cuenta, Ejecutivo]; cli = [razón social, SAP, índice en est (-1 = sin ejecutivo), [[contrato, servicio]]] */
 (function (g) {
   "use strict";
   g.REL_DEMO = {
-    id: "demo",
-    ejecutivo: "Comercial de ejemplo",
-    clientes: [
-      { id: "k1", razon: "Comercio Ejemplo Uno S.A.", sap: "104587", contratos: [
-        { nro: "4000100231", servicio: "Encomienda Pyme – Estándar" },
-        { nro: "4000100232", servicio: "Encomienda Pyme – Cobranza" },
-        { nro: "4000100233", servicio: "Encomienda Pyme – Devoluciones" }
-      ] },
-      { id: "k2", razon: "Tienda Ficticia S.A.", sap: "106004", contratos: [
-        { nro: "4000100502", servicio: "E-commerce – Entrega directa" },
-        { nro: "4000100503", servicio: "E-commerce – Cambio" }
-      ] },
-      { id: "k3", razon: "Laboratorio Demo S.R.L.", sap: "105123", contratos: [
-        { nro: "4000100417", servicio: "Encomienda Corporativa – Documentación" }
-      ] },
-      { id: "k4", razon: "Industrias Prueba S.A.", sap: "108112", contratos: [
-        { nro: "4000100720", servicio: "Encomienda Corporativa – Estándar" },
-        { nro: "4000100721", servicio: "Encomienda Corporativa – Cobranza" }
-      ] }
+    v: 1, gen: "2026-11-21T00:00:00.000Z",
+    est: [
+      ["Dirección Ejemplo Norte", "Gerencia Comercial Uno", "Gerencia de Cuenta A", "Ejecutivo de Ejemplo 1"],
+      ["Dirección Ejemplo Norte", "Gerencia Comercial Uno", "Gerencia de Cuenta A", "Ejecutivo de Ejemplo 2"],
+      ["Dirección Ejemplo Sur", "Gerencia Comercial Dos", "Gerencia de Cuenta B", "Ejecutivo de Ejemplo 3"]
+    ],
+    cli: [
+      ["Comercio Ejemplo Uno S.A.", "104587", 0, [["4000100231", "Encomienda Pyme – Estándar"], ["4000100232", "Encomienda Pyme – Cobranza"], ["4000100233", "Encomienda Pyme – Devoluciones"]]],
+      ["Tienda Ficticia S.A.", "106004", 0, [["4000100502", "E-commerce – Entrega directa"], ["4000100503", "E-commerce – Cambio"]]],
+      ["Laboratorio Demo S.R.L.", "105123", 1, [["4000100417", "Encomienda Corporativa – Documentación"]]],
+      ["Industrias Prueba S.A.", "108112", 2, [["4000100720", "Encomienda Corporativa – Estándar"], ["4000100721", "Encomienda Corporativa – Cobranza"]]],
+      ["Distribuidora Sin Dueño S.R.L.", "", -1, [["4000100801", "Encomienda Pyme – Estándar"]]]
     ]
   };
 })(typeof window !== "undefined" ? window : globalThis);
