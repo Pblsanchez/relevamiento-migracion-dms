@@ -81,7 +81,7 @@
       });
     }).then(function () {
       i = paso("Guardando una copia del link en el repo privado…");
-      var reg = { publicado: new Date().toISOString(), link: link, stats: st, bytes: bin.length };
+      var reg = { publicado: new Date().toISOString(), version: VER, link: link, stats: st, bytes: bin.length };
       return subir(PRIV, REG, D.b64(new TextEncoder().encode(JSON.stringify(reg, null, 1) + "\n")), "T-024: link del relevamiento publicado").then(function () { fin(i, "✓"); },
         function () { fin(i, "!", "No se pudo guardar la copia del link (guardalo vos)."); });
     }).then(function () { return esperarPages(bin); }).then(function () {
@@ -98,7 +98,16 @@
     });
   }
 
+  var VER = "0.2.3";
   function iniciar() {
+    /* Si el navegador quedó con una versión vieja guardada, no se publica (OJO 22/11: salió sin asignaciones.csv) */
+    var ok = D.VER === VER;
+    $("verPub").textContent = "Versión " + VER + (ok ? "" : " · el navegador cargó una versión vieja");
+    if (!ok) {
+      $("btnPub").disabled = true;
+      $("estadoClave").innerHTML = '<div class="alert alert-warning" role="alert"><div><strong>Tu navegador tiene guardada una versión vieja de esta página.</strong> Recargala con <strong>Ctrl + F5</strong> (o Ctrl + Shift + R) y volvé a entrar.</div></div>';
+      return;
+    }
     var t = ""; try { t = localStorage.getItem(LS_TOKEN) || ""; } catch (e) { t = ""; }
     $("estadoClave").innerHTML = t ? '<div class="alert alert-success"><div>Se usa la clave de GitHub que ya tenés guardada en este navegador (la de la Matriz de Envíos).</div></div>'
       : '<div class="alert alert-info"><div>No hay una clave de GitHub guardada en este navegador. Pegá la tuya (la misma de la Matriz, con acceso de escritura a andreani-migracion-datos y relevamiento-migracion-dms).</div></div>' +
