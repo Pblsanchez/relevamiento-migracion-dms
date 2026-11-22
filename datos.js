@@ -32,14 +32,38 @@
     return filas.filter(function (x) { return x.some(function (y) { return String(y).trim() !== ""; }); });
   }
 
-  /* base: matriz/base.json · vinculos: rsa/vinculos.json · csv: fuentes/rentabilidad_rsa.csv (texto) */
-  function armar(base, vinculos, csv) {
+  /* Misma persona escrita de dos formas («Vazquez Sergio» / «Sergio Vazquez»): clave = palabras ordenadas sin acentos */
+  function clavePersona(s) { return plano(s).replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(Boolean).sort().join(" "); }
+  function unificador(tuplas) {
+    var cuenta = [{}, {}, {}, {}], canon = [{}, {}, {}, {}];
+    tuplas.forEach(function (t) { t.forEach(function (x, n) { var k = clavePersona(x), m = cuenta[n][k] || (cuenta[n][k] = {}); m[x] = (m[x] || 0) + 1; }); });
+    cuenta.forEach(function (lv, n) { Object.keys(lv).forEach(function (k) { canon[n][k] = Object.keys(lv[k]).sort(function (a, b) { return lv[k][b] - lv[k][a] || a.localeCompare(b, "es"); })[0]; }); });
+    return function (t) { return t.map(function (x, n) { return canon[n][clavePersona(x)] || x; }); };
+  }
+  /* asignaciones (opcional): relevamiento/asignaciones.csv del repo privado, «;» con razon_social;sap;direccion;gerente_comercial;gerente_cuenta;ejecutivo;origen.
+     Solo se usa para clientes que no quedaron en una cartera por RSA (D-127). */
+  function leerAsignaciones(txt) {
+    var out = {};
+    if (!txt) return out;
+    var f = parseCSV(txt, ";"), cab = (f.shift() || []).map(sinAcentos);
+    var i = { r: cab.indexOf("razon_social"), d: cab.indexOf("direccion"), gc: cab.indexOf("gerente_comercial"), gcu: cab.indexOf("gerente_cuenta"), e: cab.indexOf("ejecutivo") };
+    if (i.r < 0 || i.e < 0 || i.d < 0 || i.gc < 0 || i.gcu < 0) throw new Error("asignaciones.csv no tiene las columnas esperadas (razon_social, direccion, gerente_comercial, gerente_cuenta, ejecutivo).");
+    f.forEach(function (x) { var t = [x[i.d], x[i.gc], x[i.gcu], x[i.e]].map(function (y) { return String(y || "").trim(); }); if (x[i.r] && t[3]) out[plano(x[i.r])] = t; });
+    return out;
+  }
+
+  /* base: matriz/base.json · vinculos: rsa/vinculos.json · csv: fuentes/rentabilidad_rsa.csv (texto) · asigTxt: asignaciones.csv (texto, opcional) */
+  function armar(base, vinculos, csv, asigTxt) {
     var filas = parseCSV(csv, ";"), cab = (filas.shift() || []).map(sinAcentos);
     function col(re) { for (var i = 0; i < cab.length; i++) if (re.test(cab[i])) return i; return -1; }
     var iR = col(/^id_rsa$/), iE = col(/^ejecutivo/), iGcu = col(/^gerente cuenta/), iGc = col(/^gerente comercial/), iD = col(/^direccion/);
     if ([iR, iE, iGcu, iGc, iD].some(function (x) { return x < 0; })) throw new Error("La base de rentabilidad no tiene las columnas esperadas (ID_RSA, Ejecutivo Cuentas, Gerente Cuenta, Gerente Comercial, Dirección Comercial).");
-    var estRsa = {};
-    filas.forEach(function (f) { var id = String(f[iR] || "").trim(); if (id) estRsa[id] = [f[iD], f[iGc], f[iGcu], f[iE]].map(function (x) { return String(x || "").trim(); }); });
+    var estRsa = {}, crudas = [];
+    filas.forEach(function (f) { var id = String(f[iR] || "").trim(); if (id) { var t = [f[iD], f[iGc], f[iGcu], f[iE]].map(function (x) { return String(x || "").trim(); }); estRsa[id] = t; crudas.push(t); } });
+    var asig = leerAsignaciones(asigTxt), asigT = Object.keys(asig).map(function (k) { return asig[k]; });
+    var uni = unificador(crudas.concat(asigT));
+    Object.keys(estRsa).forEach(function (id) { estRsa[id] = uni(estRsa[id]); });
+    Object.keys(asig).forEach(function (k) { asig[k] = uni(asig[k]); });
     var vin = {};
     ((vinculos && vinculos.vinculos) || []).forEach(function (v) { vin[v.rs] = v; });
 
@@ -53,18 +77,18 @@
       if (r.servicio) s[String(r.servicio).trim()] = 1;
     });
 
-    var est = [], idxEst = {}, cli = [], st = { clientes: 0, contratos: 0, sinAsignar: { clientes: 0, contratos: 0, sinVinculo: 0, sinEstructura: 0, ambiguos: 0 } };
+    var est = [], idxEst = {}, cli = [], st = { clientes: 0, contratos: 0, porCRM: { clientes: 0, contratos: 0 }, sinAsignar: { clientes: 0, contratos: 0, sinVinculo: 0, sinEstructura: 0, ambiguos: 0 } };
+    function idx(t) { var j = t.join("\u0001"); if (!(j in idxEst)) { idxEst[j] = est.length; est.push(t); } return idxEst[j]; }
     orden.sort(function (a, b) { return a.localeCompare(b, "es"); }).forEach(function (rs) {
       var k = clientes[rs], v = vin[rs] || { rsa: [], sol: [] }, tuplas = {};
       (v.rsa || []).forEach(function (id) { var t = estRsa[id]; if (t) tuplas[t.join("\u0001")] = t; });
-      var ks = Object.keys(tuplas), e = -1;
-      if (ks.length === 1) {
-        if (!(ks[0] in idxEst)) { idxEst[ks[0]] = est.length; est.push(tuplas[ks[0]]); }
-        e = idxEst[ks[0]];
-      }
+      var ks = Object.keys(tuplas), e = -1, crm = false;
+      if (ks.length === 1) e = idx(tuplas[ks[0]]);
+      else if (asig[plano(rs)]) { e = idx(asig[plano(rs)]); crm = true; }
       var cts = Object.keys(k.cts).sort().map(function (n) { return [n, Object.keys(k.cts[n]).sort().join(" · ")]; });
       cli.push([rs, String((v.sol || [])[0] || ""), e, cts]);
       st.clientes++; st.contratos += cts.length;
+      if (crm) { st.porCRM.clientes++; st.porCRM.contratos += cts.length; }
       if (e < 0) {
         st.sinAsignar.clientes++; st.sinAsignar.contratos += cts.length;
         if (!(v.rsa || []).length) st.sinAsignar.sinVinculo++; else if (!ks.length) st.sinAsignar.sinEstructura++; else st.sinAsignar.ambiguos++;
@@ -118,6 +142,6 @@
     }).then(function (b) { return descifrar(b, clave); });
   }
 
-  g.REL_DATOS = { SIN: SIN, ARCHIVO: "datos/carteras.bin", armar: armar, parseCSV: parseCSV, cartera: cartera, hash: hash,
+  g.REL_DATOS = { SIN: SIN, ARCHIVO: "datos/carteras.bin", armar: armar, parseCSV: parseCSV, clavePersona: clavePersona, leerAsignaciones: leerAsignaciones, cartera: cartera, hash: hash,
     cifrar: cifrar, descifrar: descifrar, claveDelLink: claveDelLink, cargar: cargar, b64: b64, b64u: b64u, deb64u: deb64u, sinAcentos: sinAcentos };
 })(typeof window !== "undefined" ? window : globalThis);

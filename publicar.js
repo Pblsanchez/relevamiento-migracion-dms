@@ -5,7 +5,7 @@
   "use strict";
   var D = g.REL_DATOS, LS_TOKEN = "andreani.matriz-envios.github.token";
   var PRIV = "https://api.github.com/repos/Pblsanchez/andreani-migracion-datos", PUB = "https://api.github.com/repos/Pblsanchez/relevamiento-migracion-dms";
-  var SITIO = "https://pblsanchez.github.io/relevamiento-migracion-dms/", REG = "relevamiento/publicacion.json";
+  var SITIO = "https://pblsanchez.github.io/relevamiento-migracion-dms/", REG = "relevamiento/publicacion.json", REG_ASIG = "relevamiento/asignaciones.csv";
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function token() { var t = ""; try { t = localStorage.getItem(LS_TOKEN) || ""; } catch (e) { t = ""; } return t || ($("tok") ? $("tok").value.trim() : ""); }
@@ -35,9 +35,9 @@
       '<div class="campo"><label for="lnk">Link del relevamiento</label><textarea id="lnk" class="pub-link" rows="3" readonly>' + esc(link) + "</textarea></div>" +
       '<div class="sel-acc"><button type="button" class="btn btn-primary" id="btnCopiarLnk">Copiar link</button><a class="btn btn-secondary" href="' + esc(link) + '" target="_blank" rel="noopener">Abrir y probar</a></div>' +
       (nota ? '<p class="small">' + nota + "</p>" : "");
-    if (st) h += '<div class="pub-stats">' + [["Ejecutivos", st.ejecutivos], ["Clientes B2C", st.clientes], ["Contratos B2C", st.contratos], ["Clientes sin ejecutivo", st.sinAsignar.clientes]].map(function (x) {
+    if (st) h += '<div class="pub-stats">' + [["Ejecutivos", st.ejecutivos], ["Clientes B2C", st.clientes], ["Contratos B2C", st.contratos], ["Dueño tomado del CRM", (st.porCRM || {}).clientes || 0], ["Clientes sin ejecutivo", st.sinAsignar.clientes]].map(function (x) {
       return '<div class="pub-stat"><b>' + x[1].toLocaleString("es-AR") + '</b><span class="small">' + x[0] + "</span></div>"; }).join("") + "</div>" +
-      '<p class="small">Sin ejecutivo: ' + st.sinAsignar.sinVinculo + " sin RSA vinculado · " + st.sinAsignar.sinEstructura + " con RSA sin estructura en la base de rentabilidad · " + st.sinAsignar.ambiguos + " con RSA de distintas carteras. Contratos sin ejecutivo: " + st.sinAsignar.contratos + ".</p>";
+      '<p class="small">Clientes sin dueño: ' + st.sinAsignar.clientes + " (" + st.sinAsignar.contratos + " contratos). No tienen ejecutivo en la base de rentabilidad ni en asignaciones.csv: quedan en «Sin ejecutivo asignado».</p>";
     $("resultado").innerHTML = h;
   }
   function esperarPages(bin) {
@@ -59,11 +59,13 @@
     if (!token()) { $("resultado").innerHTML = '<div class="alert alert-warning" role="alert"><div>Falta la clave de GitHub. Pegala en el campo de arriba.</div></div>'; return; }
     $("btnPub").disabled = true; pasos = []; $("resultado").innerHTML = "";
     var st, bin, link, i = paso("Leyendo la Matriz, los vínculos RSA y la base de rentabilidad del repo privado…");
-    Promise.all([leer("matriz/base.json"), leer("rsa/vinculos.json"), leer("fuentes/rentabilidad_rsa.csv")]).then(function (x) {
+    var asigOpc = leer(REG_ASIG).catch(function (e) { if (e.status === 404) return ""; throw e; });
+    Promise.all([leer("matriz/base.json"), leer("rsa/vinculos.json"), leer("fuentes/rentabilidad_rsa.csv"), asigOpc]).then(function (x) {
       fin(i, "✓");
       i = paso("Armando las carteras B2C por estructura comercial…");
-      var a = D.armar(JSON.parse(x[0]), JSON.parse(x[1]), x[2]); st = a.stats;
-      fin(i, "✓", "Carteras armadas: " + st.ejecutivos + " ejecutivos, " + st.clientes + " clientes, " + st.contratos + " contratos B2C.");
+      var a = D.armar(JSON.parse(x[0]), JSON.parse(x[1]), x[2], x[3]); st = a.stats;
+      fin(i, "✓", "Carteras armadas: " + st.ejecutivos + " ejecutivos, " + st.clientes + " clientes, " + st.contratos + " contratos B2C." +
+        (x[3] ? " Dueños tomados del CRM (asignaciones.csv): " + st.porCRM.clientes + " clientes." : " Sin asignaciones.csv: los clientes sin RSA quedan «Sin ejecutivo»."));
       i = paso("Cifrando…");
       return D.cifrar(a.paquete);
     }).then(function (c) {
