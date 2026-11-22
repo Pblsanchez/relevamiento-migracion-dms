@@ -110,12 +110,21 @@
       return;
     }
     aviso("info", "Cargando las carteras…");
+    intentar(clave, delLink, 0);
+  }
+  /* v0.2.4: si el link es nuevo y GitHub Pages todavía sirve el archivo anterior (tarda 1–2 min en publicar), reintenta solo */
+  var REINT = 8, ESPERA = 15000;
+  function intentar(clave, delLink, n) {
     D.cargar(clave, D.ARCHIVO).then(function (p) {
       var f = new Date(p.gen);
       guardarClave(clave);
       listo(p, "Carteras B2C de la Matriz de Envíos al " + f.toLocaleDateString("es-AR") + ". Tus respuestas quedan guardadas en este navegador hasta que las envíes.");
     }, function () {
       $("banner").textContent = "Relevamiento de la migración Integra → DMS";
+      if (delLink && n < REINT) {
+        aviso("info", "<strong>Estamos terminando de publicar las carteras.</strong> Puede tardar uno o dos minutos; la página vuelve a probar sola (intento " + (n + 1) + " de " + REINT + ").");
+        setTimeout(function () { intentar(clave, delLink, n + 1); }, ESPERA); return;
+      }
       if (!delLink) { try { localStorage.removeItem(LS_K); } catch (x) { /* nada */ } }
       aviso("warning", "<strong>No se pudieron abrir las carteras.</strong> " + (delLink ? "El link puede estar incompleto o haber sido reemplazado por uno nuevo." : "Las carteras se volvieron a publicar con una llave nueva.") +
         " Abrí el link actualizado que te mandó Pablo Sánchez por Teams: después vas a poder entrar también desde el Portal.");
@@ -137,6 +146,8 @@
     else if (t.id === "btnCambiar") mostrarSel();
     else if (t.hasAttribute("data-cli")) { var c = pq.cli[+t.getAttribute("data-cli")]; abrir(c[2] < 0 ? D.SIN.id : c[2]); }
   });
+  /* v0.2.4: pegar un link nuevo en la misma pestaña solo cambia el # y el navegador no recarga: se fuerza la recarga */
+  g.addEventListener("hashchange", function () { if (D.claveDelLink(location.hash)) location.reload(); });
   g.REL_SEL = { arrancar: arrancar, mostrar: mostrarSel };
   arrancar();
 })(window);
