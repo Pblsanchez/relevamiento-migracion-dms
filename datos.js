@@ -142,6 +142,6 @@
     }).then(function (b) { return descifrar(b, clave); });
   }
 
-  g.REL_DATOS = { VER: "0.2.3", SIN: SIN, ARCHIVO: "datos/carteras.bin", armar: armar, parseCSV: parseCSV, clavePersona: clavePersona, leerAsignaciones: leerAsignaciones, cartera: cartera, hash: hash,
+  g.REL_DATOS = { VER: "0.2.4", SIN: SIN, ARCHIVO: "datos/carteras.bin", armar: armar, parseCSV: parseCSV, clavePersona: clavePersona, leerAsignaciones: leerAsignaciones, cartera: cartera, hash: hash,
     cifrar: cifrar, descifrar: descifrar, claveDelLink: claveDelLink, cargar: cargar, b64: b64, b64u: b64u, deb64u: deb64u, sinAcentos: sinAcentos };
 })(typeof window !== "undefined" ? window : globalThis);

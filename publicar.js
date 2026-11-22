@@ -55,7 +55,10 @@
     });
   }
 
+  var ultimo = null;
   function publicar() {
+    /* v0.2.4: el 22/11 se publicó dos veces en 18 s y el primer link quedó muerto: se pide confirmación */
+    if (ultimo && !g.confirm("Ya hay un link publicado (" + ultimo + "). Si publicás de nuevo, ese link deja de funcionar y tenés que mandar el nuevo a todo el equipo. ¿Publicar igual?")) return;
     if (!token()) { $("resultado").innerHTML = '<div class="alert alert-warning" role="alert"><div>Falta la clave de GitHub. Pegala en el campo de arriba.</div></div>'; return; }
     $("btnPub").disabled = true; pasos = []; $("resultado").innerHTML = "";
     var st, bin, link, i = paso("Leyendo la Matriz, los vínculos RSA y la base de rentabilidad del repo privado…");
@@ -85,7 +88,8 @@
       return subir(PRIV, REG, D.b64(new TextEncoder().encode(JSON.stringify(reg, null, 1) + "\n")), "T-024: link del relevamiento publicado").then(function () { fin(i, "✓"); },
         function () { fin(i, "!", "No se pudo guardar la copia del link (guardalo vos)."); });
     }).then(function () { return esperarPages(bin); }).then(function () {
-      mostrarLink(link, st, new Date().toLocaleString("es-AR"));
+      ultimo = new Date().toLocaleString("es-AR");
+      mostrarLink(link, st, ultimo);
       $("btnPub").disabled = false;
     }).catch(function (e) {
       $("btnPub").disabled = false;
@@ -98,7 +102,7 @@
     });
   }
 
-  var VER = "0.2.3";
+  var VER = "0.2.4";
   function iniciar() {
     /* Si el navegador quedó con una versión vieja guardada, no se publica (OJO 22/11: salió sin asignaciones.csv) */
     var ok = D.VER === VER;
@@ -113,7 +117,7 @@
       : '<div class="alert alert-info"><div>No hay una clave de GitHub guardada en este navegador. Pegá la tuya (la misma de la Matriz, con acceso de escritura a andreani-migracion-datos y relevamiento-migracion-dms).</div></div>' +
         '<div class="campo"><label for="tok">Clave de GitHub</label><input type="password" id="tok" class="pub-link" autocomplete="off" spellcheck="false"></div>';
     if (t) leer(REG).then(function (txt) {
-      var r = JSON.parse(txt); if (!pasos.length && r && r.link) mostrarLink(r.link, r.stats, new Date(r.publicado).toLocaleString("es-AR"), "Es el último link publicado. Si cambió la Matriz o la base de rentabilidad, tocá «Publicar» para generar uno nuevo (el anterior deja de funcionar).");
+      var r = JSON.parse(txt); if (r && r.publicado) ultimo = new Date(r.publicado).toLocaleString("es-AR"); if (!pasos.length && r && r.link) mostrarLink(r.link, r.stats, new Date(r.publicado).toLocaleString("es-AR"), "Es el último link publicado. Si cambió la Matriz o la base de rentabilidad, tocá «Publicar» para generar uno nuevo (el anterior deja de funcionar).");
     }).catch(function () { /* todavía no se publicó */ });
   }
   document.addEventListener("click", function (ev) {
