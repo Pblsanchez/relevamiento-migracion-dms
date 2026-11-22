@@ -96,8 +96,12 @@
     var e = recordada();
     if (e !== null) abrir(e); else mostrarSel(true);
   }
+  /* La llave del link queda guardada en este navegador: la próxima vez se puede entrar desde el Portal sin el link (v0.2.3) */
+  var LS_K = "rel-dms.k";
+  function claveGuardada() { try { return localStorage.getItem(LS_K) || ""; } catch (x) { return ""; } }
+  function guardarClave(k) { try { localStorage.setItem(LS_K, k); } catch (x) { /* sin almacenamiento */ } }
   function arrancar() {
-    var demo = /[?&]demo(?:=|&|$)/.test(location.search), clave = D.claveDelLink(location.hash);
+    var demo = /[?&]demo(?:=|&|$)/.test(location.search), delLink = D.claveDelLink(location.hash), clave = delLink || claveGuardada();
     if (demo) { listo(g.REL_DEMO, "Ejemplo con clientes y contratos <strong>inventados</strong>. Tus respuestas quedan guardadas en este navegador."); return; }
     if (!clave) {
       $("banner").textContent = "Relevamiento de la migración Integra → DMS";
@@ -108,10 +112,13 @@
     aviso("info", "Cargando las carteras…");
     D.cargar(clave, D.ARCHIVO).then(function (p) {
       var f = new Date(p.gen);
+      guardarClave(clave);
       listo(p, "Carteras B2C de la Matriz de Envíos al " + f.toLocaleDateString("es-AR") + ". Tus respuestas quedan guardadas en este navegador hasta que las envíes.");
     }, function () {
       $("banner").textContent = "Relevamiento de la migración Integra → DMS";
-      aviso("warning", "<strong>No se pudieron abrir las carteras.</strong> El link puede estar incompleto o haber sido reemplazado por uno nuevo. Pedile a Pablo Sánchez el link actualizado.");
+      if (!delLink) { try { localStorage.removeItem(LS_K); } catch (x) { /* nada */ } }
+      aviso("warning", "<strong>No se pudieron abrir las carteras.</strong> " + (delLink ? "El link puede estar incompleto o haber sido reemplazado por uno nuevo." : "Las carteras se volvieron a publicar con una llave nueva.") +
+        " Abrí el link actualizado que te mandó Pablo Sánchez por Teams: después vas a poder entrar también desde el Portal.");
     });
   }
 
