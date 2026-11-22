@@ -1,4 +1,4 @@
-/* Relevamiento migración Integra → DMS · v0.2 (T-024). Cartera elegida en seleccion.js (D-126); borrador en el navegador; envío por Teams (D-124). */
+/* Relevamiento migración Integra → DMS · v0.2.5 (T-024). Cartera elegida en seleccion.js (D-126); borrador en el navegador; envío por Teams (D-124). */
 (function (g) {
   "use strict";
   var CAT = g.REL_CAT;
@@ -39,7 +39,11 @@
     var cs = new CompressionStream("deflate-raw"), w = cs.writable.getWriter(); w.write(raw); w.close();
     return new Response(cs.readable).arrayBuffer().then(function (b) { return "z|" + b64url(new Uint8Array(b)); });
   }
-  var API = g.REL_LIB = { contratos: contratos, migrando: migrando, clientesMig: clientesMig, pendientes: pendientes, totales: totales, payload: payload, codificar: codificar };
+  /* D-128: atajo «todos los contratos de este cliente» solo donde ahorra tiempo:
+     cliente con 3 o más contratos, o cartera grande (30 o más clientes) y cliente con 2 o más. */
+  var ATAJO = { min: 3, cartera: 30 };
+  function conAtajo(cart, n) { return n >= ATAJO.min || (cart.clientes.length >= ATAJO.cartera && n >= 2); }
+  var API = g.REL_LIB = { ATAJO: ATAJO, conAtajo: conAtajo, contratos: contratos, migrando: migrando, clientesMig: clientesMig, pendientes: pendientes, totales: totales, payload: payload, codificar: codificar };
   if (typeof document === "undefined") return;
 
   /* ---------- estado ---------- */
@@ -47,11 +51,11 @@
   function cargarBorrador() { try { return JSON.parse(localStorage.getItem(CLAVE)) || null; } catch (e) { return null; } }
   function guardar() { try { localStorage.setItem(CLAVE, JSON.stringify(r)); } catch (e) { /* sin almacenamiento: sigue en memoria */ } }
   var PASOS = [
-    { t: "Contratos a migrar", d: "Marcá contrato por contrato si se migra a DMS. No hay «seleccionar todo»: queremos que revises cada servicio." },
+    { t: "Contratos a migrar", d: "Marcá contrato por contrato si se migra a DMS. En los clientes con varios contratos tenés un atajo para responderlos juntos; igual revisá cada servicio, que podés cambiarlo." },
     { t: "Ciclo de vida", d: "Para cada contrato que se migra, elegí cuál de los ciclos de vida estándar se ajusta a su servicio." },
     { t: "Condición de entrega", d: "Elegí la condición de entrega que tiene hoy cada contrato que se migra. Una por contrato." },
     { t: "Tipo de etiqueta", d: "Por cliente: ¿usa la etiqueta integrada de Andreani o un desarrollo propio?" },
-    { t: "Integración", d: "Para cada contrato que se migra, indicá si está integrado y de qué forma." },
+    { t: "Integración", d: "Para cada contrato que se migra, indicá si está integrado y de qué forma. Podés responder todo el cliente junto o copiar a otros contratos." },
     { t: "Revisar y enviar", d: "Revisá el resumen y mandalo. Se abre Teams con el mensaje ya escrito: solo tenés que apretar Enter." }
   ];
 
@@ -68,15 +72,22 @@
   function cabCto(c, x) {
     return '<div class="cto-cab"><span class="cto-nro">' + esc(c.nro) + '</span><span class="cto-srv">' + esc(c.servicio) + "</span>" + (x ? '<span class="ok-tag" aria-label="Respondido">✓</span>' : "") + "</div>";
   }
-  function porCliente(lista, fila) {
+  function porCliente(lista, fila, barra) {
     var h = "", ult = null;
     lista.forEach(function (c) {
-      if (c.cli !== ult) { if (ult) h += "</div></section>"; ult = c.cli; h += '<section class="cli"><h3 class="cli-t">' + esc(c.cli.razon) + (c.cli.sap ? ' <span class="cli-sap">SAP ' + esc(c.cli.sap) + "</span>" : "") + '</h3><div class="cli-l">'; }
+      if (c.cli !== ult) { if (ult) h += "</div></section>"; ult = c.cli; h += '<section class="cli"><h3 class="cli-t">' + esc(c.cli.razon) + (c.cli.sap ? ' <span class="cli-sap">SAP ' + esc(c.cli.sap) + "</span>" : "") + "</h3>" + (barra ? barra(c.cli) : "") + '<div class="cli-l">'; }
       h += fila(c);
     });
     return h + (ult ? "</div></section>" : "");
   }
   function sinMigrar() { return '<div class="alert alert-info"><div>Todavía no marcaste ningún contrato para migrar. Volvé a <button type="button" class="lnk" data-ir="0">Contratos a migrar</button>.</div></div>'; }
+  /* barra del atajo (D-128): botones que responden de una vez los contratos del cliente */
+  function barraTodo(k, cli, ops, n, titulo) {
+    var i = cart.clientes.indexOf(cli);
+    return '<div class="atajo" role="group" aria-label="' + esc(titulo + " · " + cli.razon) + '"><span class="atajo-t">' + esc(titulo) + "</span>" + ops.map(function (o) {
+      return '<button type="button" class="atajo-op' + (o.id === "ns" ? " ns" : "") + '" id="at-' + k + "-" + i + "-" + o.id + '" data-todo="' + k + '" data-tcli="' + i + '" data-val="' + o.id + '">' + esc(o.nombre) + "</button>";
+    }).join("") + "</div>";
+  }
   function btnCopiar(k, nro, val) { return val ? '<button type="button" class="btn btn-ghost btn-sm" data-copiar="' + k + '" data-nro="' + nro + '">Copiar a otros contratos</button>' : ""; }
 
   /* ---------- pasos ---------- */
@@ -85,6 +96,11 @@
       var x = r.c[c.nro] || {};
       return '<div class="cto">' + cabCto(c, x.m && (x.m !== "no" || x.mot)) + radios("m-" + c.nro, "m", CAT.migrar, x.m, { ref: c.nro, label: "¿Se migra el contrato " + c.nro + "?" }) +
         (x.m === "no" ? '<div class="sub"><span class="sub-t">Motivo</span>' + radios("mot-" + c.nro, "mot", CAT.motivos, x.mot, { ref: c.nro, label: "Motivo para no migrar " + c.nro }) + "</div>" : "") + "</div>";
+    }, function (cli) {
+      var n = cli.contratos.length; if (!conAtajo(cart, n)) return "";
+      var nNo = cli.contratos.filter(function (c) { return (r.c[c.nro] || {}).m === "no"; }).length;
+      return barraTodo("m", cli, CAT.migrar, n, "Sus " + n + " contratos:") +
+        (nNo > 1 ? barraTodo("mot", cli, CAT.motivos, nNo, "Motivo para los " + nNo + " que no se migran:") : "");
     });
   }
   function v1() {
@@ -123,7 +139,11 @@
     var m = migrando(r, cart); if (!m.length) return sinMigrar();
     return porCliente(m, function (c) {
       var x = r.c[c.nro];
-      return '<div class="cto">' + cabCto(c, x.integ) + radios("in-" + c.nro, "integ", CAT.integraciones, x.integ, { ref: c.nro, label: "Integración del contrato " + c.nro }) + "</div>";
+      return '<div class="cto">' + cabCto(c, x.integ) + radios("in-" + c.nro, "integ", CAT.integraciones, x.integ, { ref: c.nro, label: "Integración del contrato " + c.nro }) +
+        '<div class="acc">' + btnCopiar("integ", c.nro, x.integ) + "</div></div>";
+    }, function (cli) {
+      var n = cli.contratos.filter(function (c) { return (r.c[c.nro] || {}).m === "si"; }).length;
+      return conAtajo(cart, n) ? barraTodo("integ", cli, CAT.integraciones, n, "Sus " + n + " contratos a migrar:") : "";
     });
   }
   function v5() {
@@ -174,8 +194,8 @@
   function abrirCopia(k, nro) {
     var val = r.c[nro][k], otros = migrando(r, cart).filter(function (c) { return c.nro !== nro; });
     copia = { k: k, nro: nro, val: val };
-    var txt = k === "ciclo" ? (val === "ns" ? "No sé" : (CAT.ciclos.filter(function (o) { return o.id === val; })[0] || {}).nombre) : (val === "ns" ? "No sé" : val + " · " + nom(CAT.condiciones, val));
-    document.getElementById("copiaT").textContent = "Copiar " + (k === "ciclo" ? "ciclo de vida" : "condición de entrega");
+    var txt = val === "ns" ? "No sé" : k === "ciclo" ? (CAT.ciclos.filter(function (o) { return o.id === val; })[0] || {}).nombre : k === "integ" ? nom(CAT.integraciones, val) : val + " · " + nom(CAT.condiciones, val);
+    document.getElementById("copiaT").textContent = "Copiar " + (k === "ciclo" ? "ciclo de vida" : k === "integ" ? "integración" : "condición de entrega");
     document.getElementById("copiaD").textContent = "«" + txt + "» del contrato " + nro + ". Ya vienen marcados los que todavía no tienen respuesta.";
     document.getElementById("copiaL").innerHTML = otros.length ? otros.map(function (c) {
       var x = r.c[c.nro][k];
@@ -189,6 +209,19 @@
     document.getElementById("dlgCopia").close(); guardar();
     aviso = n ? "Copiado a " + n + " contrato" + (n === 1 ? "" : "s") + "." : "";
     render("cuerpo");
+  }
+
+  /* ---------- atajo por cliente (D-128) ---------- */
+  function aplicarTodo(k, i, val) {
+    var cli = cart.clientes[i], n = 0; if (!cli) return;
+    cli.contratos.forEach(function (c) {
+      var x = rc(r, c.nro);
+      if (k === "m") { x.m = val; if (val !== "no") delete x.mot; n++; }
+      else if (k === "mot" && x.m === "no") { x.mot = val; n++; }
+      else if (k === "integ" && x.m === "si") { x.integ = val; n++; }
+    });
+    guardar();
+    aviso = "Listo: respondiste " + n + " contrato" + (n === 1 ? "" : "s") + " de " + esc(cli.razon) + " de una vez. Revisalos abajo: podés cambiar cualquiera.";
   }
 
   /* ---------- envío ---------- */
@@ -227,6 +260,7 @@
   document.addEventListener("click", function (e) {
     var t = e.target.closest ? e.target.closest("button") : null; if (!t) return;
     if (t.hasAttribute("data-ir")) ir(+t.getAttribute("data-ir"));
+    else if (t.hasAttribute("data-todo")) { aplicarTodo(t.getAttribute("data-todo"), +t.getAttribute("data-tcli"), t.getAttribute("data-val")); render(t.id); }
     else if (t.hasAttribute("data-copiar")) abrirCopia(t.getAttribute("data-copiar"), t.getAttribute("data-nro"));
     else if (t.id === "btnAnt") ir(paso - 1);
     else if (t.id === "btnSig") ir(paso + 1);

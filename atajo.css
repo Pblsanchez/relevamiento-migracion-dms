@@ -1,0 +1,7 @@
+/* Atajo por cliente (D-128, v0.2.5) */
+.atajo { display: flex; flex-wrap: wrap; align-items: center; gap: var(--c-spacing-2); padding: var(--c-spacing-2) var(--c-spacing-4); background: var(--c-color-surface); border-bottom: 1px dashed var(--c-color-border-subtle); }
+.atajo-t { font: 500 14px/20px var(--c-font-family-body); color: var(--c-color-text-subtle, #555); margin-right: var(--c-spacing-1); }
+.atajo-op { cursor: pointer; border: 1px solid var(--c-color-fill-primary); color: var(--c-color-fill-primary); background: var(--c-color-surface); border-radius: var(--c-border-radius-xlarge); padding: var(--c-spacing-1) var(--c-spacing-3); min-height: 32px; font: 500 14px/20px var(--c-font-family-body); }
+.atajo-op:hover { background: var(--c-gray-50); }
+.atajo-op.ns { border-style: dashed; border-color: var(--c-color-border-strong); color: var(--c-color-text-strong); }
+.atajo-op:focus-visible { outline: none; box-shadow: var(--shadow-focus-regular); }
