@@ -1,4 +1,4 @@
-/* Relevamiento migración Integra → DMS · v0.2.5 (T-024). Cartera elegida en seleccion.js (D-126); borrador en el navegador; envío por Teams (D-124). */
+/* Relevamiento migración Integra → DMS · v0.2.6 (T-024; textos sin nombres propios: «equipo de migración», T-027). Cartera elegida en seleccion.js (D-126); borrador en el navegador; envío por Teams (D-124). */
 (function (g) {
   "use strict";
   var CAT = g.REL_CAT;
@@ -159,9 +159,9 @@
         "<td>" + (mg ? esc(nom(CAT.integraciones, x.integ) || "—") : "") + "</td></tr>";
     }).join("");
     h += '<div class="tabla-wrap"><table><caption class="sr-only">Resumen de tus respuestas</caption><thead><tr><th scope="col">Cliente</th><th scope="col">Contrato</th><th scope="col">¿Migra?</th><th scope="col">Ciclo</th><th scope="col">Condición</th><th scope="col">Etiqueta</th><th scope="col">Integración</th></tr></thead><tbody>' + filas + "</tbody></table></div>";
-    h += '<div class="envio"><button type="button" class="btn btn-primary" id="btnEnviar"' + (t.pen ? " disabled" : "") + ">Enviar a Pablo por Teams</button>" +
+    h += '<div class="envio"><button type="button" class="btn btn-primary" id="btnEnviar"' + (t.pen ? " disabled" : "") + ">Enviar al equipo de migración por Teams</button>" +
       '<button type="button" class="btn btn-secondary" id="btnCopiarCod"' + (t.pen ? " disabled" : "") + ">Copiar código</button></div>" +
-      '<p class="small">Se abre un chat de Teams con Pablo Sánchez y el mensaje ya escrito. Solo apretá <strong>Enter</strong>. Si Teams no se abre, usá «Copiar código» y pegalo en ese chat.</p>' +
+      '<p class="small">Se abre un chat de Teams con el equipo de migración y el mensaje ya escrito. Solo apretá <strong>Enter</strong>. Si Teams no se abre, usá «Copiar código» y pegalo en ese chat.</p>' +
       (r.enviado ? '<div class="alert alert-success"><div>Abriste el envío el ' + esc(r.enviado) + ". Si cambiás algo, volvé a enviarlo: vale la última respuesta.</div></div>" : "") +
       '<div id="msgEnvio" aria-live="polite"></div>';
     return h;
@@ -239,7 +239,7 @@
   }
   function copiarCodigo() {
     mensaje().then(function (msg) {
-      var ok = function () { document.getElementById("msgEnvio").innerHTML = '<div class="alert alert-success"><div>Código copiado. Pegalo en tu chat de Teams con Pablo Sánchez y envialo.</div></div>'; };
+      var ok = function () { document.getElementById("msgEnvio").innerHTML = '<div class="alert alert-success"><div>Código copiado. Pegalo en tu chat de Teams con el equipo de migración y envialo.</div></div>'; };
       if (navigator.clipboard) navigator.clipboard.writeText(msg).then(ok, function () { mostrarCodigo(msg); });
       else mostrarCodigo(msg);
     });

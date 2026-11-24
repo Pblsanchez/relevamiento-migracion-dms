@@ -105,7 +105,7 @@
     if (demo) { listo(g.REL_DEMO, "Ejemplo con clientes y contratos <strong>inventados</strong>. Tus respuestas quedan guardadas en este navegador."); return; }
     if (!clave) {
       $("banner").textContent = "Relevamiento de la migración Integra → DMS";
-      aviso("info", "<strong>Para entrar necesitás el link que te mandó Pablo Sánchez</strong>: trae la llave para ver las carteras. Si lo abriste desde otro lado, buscalo en tu Teams. " +
+      aviso("info", "<strong>Para entrar necesitás el link que te mandó el equipo de migración</strong>: trae la llave para ver las carteras. Si lo abriste desde otro lado, buscalo en tu Teams. " +
         '¿Querés ver cómo funciona? <a href="?demo">Abrí el ejemplo</a>.');
       return;
     }
@@ -127,7 +127,7 @@
       }
       if (!delLink) { try { localStorage.removeItem(LS_K); } catch (x) { /* nada */ } }
       aviso("warning", "<strong>No se pudieron abrir las carteras.</strong> " + (delLink ? "El link puede estar incompleto o haber sido reemplazado por uno nuevo." : "Las carteras se volvieron a publicar con una llave nueva.") +
-        " Abrí el link actualizado que te mandó Pablo Sánchez por Teams: después vas a poder entrar también desde el Portal.");
+        " Abrí el link actualizado que te mandó el equipo de migración por Teams: después vas a poder entrar también desde el Portal.");
     });
   }
 
